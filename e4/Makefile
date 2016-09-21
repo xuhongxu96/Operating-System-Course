@@ -1,4 +1,4 @@
 make:
 	gcc main.c -omain
-clear:
+clean:
 	rm main
