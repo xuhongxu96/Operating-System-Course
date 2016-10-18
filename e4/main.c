@@ -27,32 +27,39 @@ void server() {
     struct msgbuf buffer;
     int ret = 0;
 
-    while (1) {
-        ret = msgrcv(msqid, (void *) &buffer, BUFFER_SIZE, 0, MSG_NOERROR);
+    for (long i = 10; i >= 1; --i) {
+        ret = msgrcv(msqid, (void *) &buffer, BUFFER_SIZE, i, MSG_NOERROR);
         if (ret == -1) {
             printf("(Server) err: %d %s\n", errno, strerror(errno));
             break;
         }
         printf("(Server) received %ld: %s\n", buffer.mtype, buffer.mtext);
-        if (buffer.mtype == 1) {
-            printf("(Server) exit\n");
+
+        buffer.mtype = 10 + i;
+        sprintf(buffer.mtext, "Hi, I'm msg %ld", 10 + i);
+        ret = msgsnd(msqid, (const void *) &buffer, sizeof(buffer.mtext), 0);
+        if (ret == -1) {
+            printf("(Server) err: %d %s\n", errno, strerror(errno));
             break;
+        } else {
+            printf("(Server) sent: %s\n", buffer.mtext);
         }
     }
 
-    msgctl(msqid, IPC_RMID, NULL);
+    printf("(Server) exit\n");
 
 }
 
 void client() {
 
     int msqid = msgget(KEY, IPC_CREAT | 0660);
+    int ret = 0;
+    struct msgbuf buffer;
+
     if (msqid == -1) {
         printf("msgget err: %d %s\n", errno, strerror(errno));
         return;
     }
-
-    struct msgbuf buffer;
 
     for (long i = 10; i >= 1; --i) {
         buffer.mtype = i;
@@ -64,9 +71,17 @@ void client() {
         } else {
             printf("(Client) sent: %s\n", buffer.mtext);
         }
+
+        ret = msgrcv(msqid, (void *) &buffer, BUFFER_SIZE, 10 + i, MSG_NOERROR);
+        if (ret == -1) {
+            printf("(Client) err: %d %s\n", errno, strerror(errno));
+            break;
+        }
+        printf("(Client) received %ld: %s\n", buffer.mtype, buffer.mtext);
     }
 
     printf("(Client) exit\n");
+
 }
 
 int main() {
@@ -85,8 +100,8 @@ int main() {
             // client child
             client();
         } else {
-            waitpid(client_pid, NULL, 0);
-            waitpid(server_pid, NULL, 0);
+            wait(0);
+            wait(0);
 
             printf("(Parent) exit\n");
         }
