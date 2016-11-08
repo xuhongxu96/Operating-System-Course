@@ -1,3 +1,3 @@
-# Memory Fragment Management
+# Memory Partition Management
 
-Implemented first fit, next fit, and best fit memory fragment partition algorithm.
+Implemented first fit, next fit, and best fit memory partition algorithm.

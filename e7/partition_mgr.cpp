@@ -6,23 +6,23 @@
 
 using namespace std;
 
-struct Fragment {
+struct Partition {
 	int start;
 	int len;
 	int flag;
 	int job;
 
-	bool operator < (Fragment &f) {
+	bool operator < (Partition &f) {
 		return start < f.start;
 	}
 };
 
 int m = -1;
 int o;
-vector<Fragment> mem;
+vector<Partition> mem;
 
-void splitFragment(vector<Fragment>::iterator it, int name, int len) {
-	Fragment f = *it;
+void splitPartition(vector<Partition>::iterator it, int name, int len) {
+	Partition f = *it;
 	mem.erase(it);
 	if (len) {
 		mem.push_back({ f.start, len, 1, name });
@@ -33,7 +33,7 @@ void splitFragment(vector<Fragment>::iterator it, int name, int len) {
 }
 
 void firstFit(int name, int len) {
-	auto it = find_if(mem.begin(), mem.end(), [len](const Fragment &f) {
+	auto it = find_if(mem.begin(), mem.end(), [len](const Partition &f) {
 		return f.flag == 0 && f.len >= len;
 	});
 	if (it == mem.end()) {
@@ -41,16 +41,16 @@ void firstFit(int name, int len) {
 		cout << "空间不足！" << endl;
 		return;
 	}
-	splitFragment(it, name, len);
+	splitPartition(it, name, len);
 }
 
 void nextFit(int name, int len) {
 	static int start = 0;
-	auto it = find_if(mem.begin(), mem.end(), [len](const Fragment &f) {
+	auto it = find_if(mem.begin(), mem.end(), [len](const Partition &f) {
 		return f.start >= start && f.flag == 0 && f.len >= len;
 	});
 	if (it == mem.end()) {
-		it = find_if(mem.begin(), mem.end(), [len](const Fragment &f) {
+		it = find_if(mem.begin(), mem.end(), [len](const Partition &f) {
 			return f.flag == 0 && f.len >= len;
 		});
 		if (it == mem.end()) {
@@ -60,15 +60,16 @@ void nextFit(int name, int len) {
 		}
 	}
 	start = (*it).start;
-	splitFragment(it, name, len);
+	splitPartition(it, name, len);
 }
 
 void bestFit(int name, int len) {
-	sort(mem.begin(), mem.end(), [](const Fragment &a, const Fragment &b) {
-		if (a.flag == 1) return false;
-		return a.len < b.len;
+	sort(mem.begin(), mem.end(), [](const Partition &a, const Partition &b) {
+		if (a.flag < b.flag) return true;
+		else if (a.flag > b.flag) return false;
+		else return a.len < b.len;
 	});
-	auto it = find_if(mem.begin(), mem.end(), [len](const Fragment &f) {
+	auto it = find_if(mem.begin(), mem.end(), [len](const Partition &f) {
 		return f.flag == 0 && f.len >= len;
 	});
 	if (it == mem.end()) {
@@ -76,7 +77,7 @@ void bestFit(int name, int len) {
 		cout << "空间不足！" << endl;
 		return;
 	}
-	splitFragment(it, name, len);
+	splitPartition(it, name, len);
 }
 
 vector<function<void(int, int)>> methods = { firstFit, nextFit, bestFit };
@@ -97,7 +98,7 @@ void freeMemory() {
 	cout << "释放作业名：" << endl;
 	cin >> name;
 	
-	auto it = find_if(mem.begin(), mem.end(), [name](Fragment &f) {
+	auto it = find_if(mem.begin(), mem.end(), [name](Partition &f) {
 		return f.job == name;
 	});
 	if (it == mem.end()) {
@@ -106,20 +107,20 @@ void freeMemory() {
 		return;
 	}
 
-	Fragment space = *it;
+	Partition space = *it;
 	space.flag = 0;
 	auto begin = it;
 	auto end = it + 1;
 
 	if (it != mem.begin() && (*(it-1)).flag == 0) {
-		// Previous fragment can be merged
+		// Previous partition can be merged
 		space.start = (*(it - 1)).start;
 		space.len += (*(it - 1)).len;
 		--begin;
 	}
 
 	if (it + 1 != mem.end() && (*(it + 1)).flag == 0) {
-		// Next fragment can be merged
+		// Next partition can be merged
 		space.len += (*(it + 1)).len;
 		++end;
 	}
@@ -132,7 +133,7 @@ void freeMemory() {
 void displayMemory() {
 	cout << endl << "空闲分区表" << endl;
 	cout << setw(10) << "起始地址" << setw(10) << "分区长度" << setw(10) << "已分配" << setw(10) << "分配作业" << endl;
-	for (Fragment f : mem) {
+	for (Partition f : mem) {
 		cout << setw(10) << f.start << setw(10) << f.len << setw(10) << f.flag;
 		if (f.flag) {
 			cout << setw(10) << f.job;
